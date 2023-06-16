@@ -1,0 +1,17 @@
+{
+  "name": "s3-downloader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Shafi S.Almutairi <shafi.almutairi@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1398.0",
+    "axios": "^1.4.0",
+    "dotenv": "^16.2.0"
+  }
+}
