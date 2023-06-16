@@ -2,11 +2,13 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const DownloadManager = require("./utils");
+const { rewriteLines } = require("./utils/helpers");
 
 const { CONCURRENT_REQUESTS = 10 } = process.env;
 // load json file
 let chunks = [];
 let chunkSize = CONCURRENT_REQUESTS;
+let totalChunks = 0;
 let linkCompleted = [];
 let complete = { count: 0, size: 0 };
 let incomplete = { count: 0, size: 0 };
@@ -15,6 +17,7 @@ let urls = [];
 let totalDownloadedSize = 0;
 let totalTotalSize = 0;
 let totalProgress = 0;
+let totalSpeed = 0;
 const humanFileSize = (bytes, dp = 1) => {
 	const thresh = 1024;
 	if (Math.abs(bytes) < thresh) return bytes + " B";
@@ -52,6 +55,12 @@ const PrintDetails = ({ id, progress, totalSize, downloadedSize }) => {
 };
 
 const app = async () => {
+	// check if links.json exists or exit
+	if (!fs.existsSync("links.json")) {
+		console.log(`links.json not found,, please run node generate.js`);
+		process.exit(1);
+	}
+
 	const fileContent = fs.readFileSync("links.json", "utf-8");
 	urls = JSON.parse(fileContent).filter(isDirectory).filter(checkCompleted);
 
@@ -61,22 +70,9 @@ const app = async () => {
 		chunks.push(urls.slice(i, i + chunkSize));
 	}
 
-	let doneSize = 0;
-	let count = 1;
 	for (const chunk of chunks) {
 		const promises = [];
-		let totalSize = chunk.reduce((a, b) => a + b.size, 0);
-		doneSize += totalSize;
-		// console.log(
-		// 	"process",
-		// 	count++,
-		// 	"of",
-		// 	chunks.length,
-		// 	"size chunk",
-		// 	humanFileSize(totalSize),
-		// 	"done",
-		// 	humanFileSize(doneSize)
-		// );
+		totalChunks = chunk.reduce((a, b) => a + b.size, 0);
 
 		// get key path distinct from all chunks in object then mkdir -p to create the directory
 		const paths = chunk.map((data) => {
@@ -113,19 +109,22 @@ const app = async () => {
 };
 
 app();
+const logList = () => [
+	`------ remaining links (${urls.length}) ------`,
+	`[Complete] count: ${complete.count} - size: ${humanFileSize(complete.size)}`,
+	`[Incomplete] count: ${incomplete.count} - size: ${humanFileSize(incomplete.size)}`,
+	``,
+	`chunk progress: ${
+		totalTotalSize > 0 ? `${humanFileSize(totalDownloadedSize)} from ${humanFileSize(totalTotalSize)}` : ""
+	}`,
+	`[${"=".repeat(Math.floor(totalProgress / 2))}${" ".repeat(
+		50 - Math.floor(totalProgress / 2)
+	)}] ${totalProgress.toFixed(2)}%`,
+
+	`parallel requests: ${CONCURRENT_REQUESTS}`,
+];
+
+logList().forEach((line) => console.log(line));
 setInterval(() => {
-	console.clear();
-	console.log("------", "remaining links", urls.length, "------");
-	console.log("complete files", complete.count, "size", humanFileSize(complete.size));
-	console.log("incomplete files", incomplete.count, "size", humanFileSize(incomplete.size));
-	console.log(
-		"progress",
-		`${totalProgress.toFixed(2)}%`,
-		"downloaded",
-		humanFileSize(totalDownloadedSize),
-		"total",
-		humanFileSize(totalTotalSize),
-		"=> parallel downloads",
-		Object.keys(monitor).length
-	);
+	rewriteLines(logList());
 }, 250); // 100 seconds * 1000 milliseconds/second

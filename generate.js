@@ -3,9 +3,9 @@ const AWS = require("aws-sdk");
 const fs = require("fs");
 const path = require("path");
 
-const { BUCKET_NAME, ACCESS_KEY_ID, SECRET_ACCESS_KEY, SIGN_URL_EXPIRE_HOUR = 24 } = process.env;
+const { BUCKET_NAME, ACCESS_KEY_ID, SECRET_ACCESS_KEY, URL_EXPIRE_HOUR = 24 } = process.env;
 
-if (!BUCKET_NAME || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY || !SIGN_URL_EXPIRE_HOUR) {
+if (!BUCKET_NAME || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY || !URL_EXPIRE_HOUR) {
 	console.log("BUCKET_NAME, ACCESS_KEY_ID, SECRET_ACCESS_KEY is not set");
 	process.exit(1);
 }
@@ -16,7 +16,7 @@ const s3 = new AWS.S3({
 });
 
 const bucketName = BUCKET_NAME;
-const urlExpirationMinutes = 60 * parseInt(SIGN_URL_EXPIRE_HOUR); // Set URL expiry time in minutes
+const urlExpirationMinutes = 60 * parseInt(URL_EXPIRE_HOUR); // Set URL expiry time in minutes
 
 const listBucketObjects = async () => {
 	let isTruncated = true;
@@ -33,11 +33,12 @@ const listBucketObjects = async () => {
 			process.stdout.clearLine();
 			process.stdout.cursorTo(0);
 			process.stdout.write(`number of files detected ${contents.length} ...`);
-
-	
+			if (contents.length > 5000) {
+				isTruncated = false;
+				continue;
+			}
 			isTruncated = data.IsTruncated;
 			marker = data.NextContinuationToken;
-			
 		} catch (err) {
 			console.log(err);
 		}
@@ -63,7 +64,8 @@ const generateSignedUrl = async (key) => {
 
 const run = async () => {
 	const bucketObjects = await listBucketObjects();
-	console.log("bucketObjects", bucketObjects.length);
+
+	console.log("\n\n generating signed urls ... of total files", bucketObjects.length, "\n\n");
 	const files = [];
 
 	for (const object of bucketObjects) {
