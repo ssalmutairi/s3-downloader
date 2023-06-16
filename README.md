@@ -19,7 +19,7 @@ cp .env.example .env
 # edit variables
 # BUCKET_NAME = ''
 # ACCESS_KEY_ID = ''
-#SECRET_ACCESS_KEY = ''
+# SECRET_ACCESS_KEY = ''
 
 # install packages
 npm install 
