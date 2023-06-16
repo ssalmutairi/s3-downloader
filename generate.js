@@ -34,12 +34,10 @@ const listBucketObjects = async () => {
 			process.stdout.cursorTo(0);
 			process.stdout.write(`number of files detected ${contents.length} ...`);
 
-			if (contents.length > 5000) {
-				isTruncated = false;
-			} else {
-				isTruncated = data.IsTruncated;
-				marker = data.NextContinuationToken;
-			}
+	
+			isTruncated = data.IsTruncated;
+			marker = data.NextContinuationToken;
+			
 		} catch (err) {
 			console.log(err);
 		}
