@@ -9,7 +9,7 @@ a service helps download all resources from s3 bucket.
 
 here the steps to install and use this repo
 
-'''sh
+``` bash
 
 # clone the repo
 git clone https://github.com/ssalmutairi/s3-downloader.git
@@ -40,4 +40,4 @@ node app.js &
 # all recources will be in downloads folder
 
 
-'''
+```
