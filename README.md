@@ -1,6 +1,11 @@
 # s3-downloader
 
-a service helps download all resources from s3 bucket.
+this repo is used to download all files from s3 bucket
+
+## Features
+
+- download all files from s3 bucket.
+- resume download remaining files.
 
 ## requirements
 

@@ -4,7 +4,7 @@ const Piscina = require("piscina");
 const fs = require("fs");
 const path = require("path");
 const DownloadManager = require("./utils");
-const { rewriteLines } = require("./utils/helpers");
+const { rewriteLines, humanFileSize } = require("./utils/helpers");
 
 const { CONCURRENT_REQUESTS = 10, SPLIT_CHUNK_IN_DIR = false } = process.env;
 
@@ -25,18 +25,7 @@ let totalTotalSize = 0;
 let totalProgress = 0;
 let totalSpeed = 0; // not used yet
 let isReady = false;
-const humanFileSize = (bytes, dp = 1) => {
-	const thresh = 1024;
-	if (Math.abs(bytes) < thresh) return bytes + " B";
-	const units = ["kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-	let u = -1;
-	const r = 10 ** 1;
-	do {
-		bytes /= thresh;
-		++u;
-	} while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
-	return bytes.toFixed(dp) + " " + units[u];
-};
+
 const removeDirectory = (d) => !d.key.endsWith("/");
 const checkCompleted = (data, { isChunkFiles, chunkIndex }) => {
 	const { key, size } = data;
@@ -207,7 +196,7 @@ const app = async () => {
 		selectedChunk = chunkIndex + 1;
 		processFiles(urls[chunkIndex].files, { isChunkFiles: true, chunkIndex: selectedChunk });
 	} else {
-		processFiles(urls);
+		processFiles(urls, { isChunkFiles: false });
 	}
 };
 

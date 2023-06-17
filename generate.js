@@ -1,7 +1,9 @@
 require("dotenv").config();
+const inquirer = require("inquirer");
 const AWS = require("aws-sdk");
 const fs = require("fs");
 const path = require("path");
+const { humanFileSize } = require("./utils/helpers");
 
 const {
 	BUCKET_NAME,
@@ -43,7 +45,7 @@ const listBucketObjects = async () => {
 			process.stdout.cursorTo(0);
 			process.stdout.write(`number of files detected ${contents.length} ...`);
 			//? for testing purpose
-			if (testMode) {
+			if (testMode && contents.length > 3000) {
 				isTruncated = false;
 				continue;
 			}
@@ -75,7 +77,7 @@ const generateSignedUrl = async (key) => {
 const run = async () => {
 	const bucketObjects = await listBucketObjects();
 
-	console.log("\n\n generating signed urls ... of total files", bucketObjects.length, "\n\n");
+	console.log(`\n\ntotal number of files detected ${bucketObjects.length}`);
 	const files = [];
 	for (const object of bucketObjects) {
 		const signedUrl = await generateSignedUrl(object.Key);
@@ -89,8 +91,70 @@ const run = async () => {
 		files.push(file);
 	}
 
-	// sort by LastModified to oldest first
-	files.sort((a, b) => a.LastModified - b.LastModified);
+	// list of directories in the bucket first level only
+	const directories = {};
+	for (const file of files) {
+		const key = file.key;
+		// get first level directory
+		const path = key.split("/")[0];
+		if (directories[path]) {
+			directories[path].count += 1;
+			directories[path].size += file.size;
+		} else {
+			directories[path] = { count: 1, size: file.size };
+		}
+	}
+
+	// use inquirer to select multiple directories
+	const choices = Object.keys(directories).map((directory) => {
+		const { count, size } = directories[directory];
+		return {
+			name: `${directory} (${count} files, ${humanFileSize(size)})`,
+			value: directory,
+		};
+	});
+
+	const { directory } = await inquirer.prompt([
+		{
+			type: "checkbox",
+			name: "directory",
+			message: "Select directories to download",
+			choices,
+			validate: function (answer) {
+				if (answer.length < 1) {
+					return "You must choose at least one directory.";
+				}
+				return true;
+			},
+		},
+	]);
+
+	// filter files based on selected directories
+	const filteredFiles = files.filter((file) => {
+		const key = file.key;
+		const path = key.split("/")[0];
+		return directory.includes(path);
+	});
+
+	// list of all directories selected and number of files in each directory
+	const selectedDirectories = {};
+	for (const file of filteredFiles) {
+		const key = file.key;
+		// get first level directory
+		const path = key.split("/")[0];
+		if (selectedDirectories[path]) {
+			selectedDirectories[path].count += 1;
+			selectedDirectories[path].size += file.size;
+		} else {
+			selectedDirectories[path] = { count: 1, size: file.size };
+		}
+	}
+
+	console.log(`\n\n------ selected directories (${Object.keys(selectedDirectories).length}) ------`);
+	for (const directory in selectedDirectories) {
+		const { count, size } = selectedDirectories[directory];
+		console.log(`${directory} (${count} files, ${humanFileSize(size)})`);
+	}
 
 	const chunkSizeGigaByte = parseInt(CHUNK_SIZE_GIGABYTE || 0);
 	if (chunkSizeGigaByte > 0) {
@@ -98,7 +162,7 @@ const run = async () => {
 		const chunkSize = Math.round(chunkSizeGigaByte * 1024 * 1024 * 1024);
 		const chunks = [];
 		let chunk = { size: 0, files: [] };
-		for (const file of files) {
+		for (const file of filteredFiles) {
 			if (chunk.size + file.size > chunkSize) {
 				chunks.push(chunk);
 				chunk = { size: 0, files: [] };
@@ -111,7 +175,7 @@ const run = async () => {
 		fs.writeFileSync("links.json", JSON.stringify(chunks, null, 2));
 	} else {
 		// write to links.json
-		fs.writeFileSync("links.json", JSON.stringify(files, null, 2));
+		fs.writeFileSync("links.json", JSON.stringify(filteredFiles, null, 2));
 	}
 };
 
