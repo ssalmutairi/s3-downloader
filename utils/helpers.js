@@ -21,3 +21,8 @@ exports.humanFileSize = (bytes, dp = 1) => {
 	} while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
 	return bytes.toFixed(dp) + " " + units[u];
 };
+
+exports.humanFileSize = (size) => {
+	const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+	return (size / Math.pow(1024, i)).toFixed(2) * 1 + " " + ["B", "kB", "MB", "GB", "TB"][i];
+};

@@ -5,16 +5,22 @@
 	"main": "index.js",
 	"scripts": {
 		"start": "node app.js",
-    "generate":"node generate.js"
+		"generate": "node generate.js",
+		"build:linux": "pkg ./index.js --targets node16-linux-x64 --output ./s3-downloader-linux"
 	},
 	"keywords": [],
 	"author": "Shafi S.Almutairi <shafi.almutairi@gmail.com>",
 	"license": "MIT",
 	"dependencies": {
+		"@aws-sdk/client-s3": "^3.354.0",
 		"aws-sdk": "^2.1398.0",
 		"axios": "^1.4.0",
 		"dotenv": "^16.2.0",
 		"inquirer": "^8.2.5",
+		"moment": "^2.29.4",
 		"piscina": "^4.0.0"
+	},
+	"devDependencies": {
+		"pkg": "^5.8.1"
 	}
 }
